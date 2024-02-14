@@ -17,11 +17,14 @@ default: &default
   encoding: unicode
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  pool: <%= ENV.fetch('RAILS_MAX_THREADS') { 5 } %>
 
+# .env.development.local
 development:
   <<: *default
-  database: rails_examples_development
+  database: <%= ENV['DEVELOPMENT_DATABASE'] %>
+  username: <%= ENV['DEVELOPMENT_DATABASE_USERNAME'] %>
+  password: <%= ENV['DEVELOPMENT_DATABASE_PASSWORD'] %>
 
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.
@@ -53,9 +56,13 @@ development:
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
+
+# .env.test.local
 test:
   <<: *default
-  database: rails_examples_test
+  database: <%= ENV['TEST_DATABASE'] %>
+  username: <%= ENV['TEST_DATABASE_USERNAME'] %>
+  password: <%= ENV['TEST_DATABASE_PASSWORD'] %>
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -81,4 +88,4 @@ production:
   <<: *default
   database: rails_examples_production
   username: rails_examples
-  password: <%= ENV["RAILS_EXAMPLES_DATABASE_PASSWORD"] %>
+  password: <%= ENV['DATABASE_PASSWORD'] %>
