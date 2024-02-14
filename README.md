@@ -1,6 +1,6 @@
 # README
 
-### [Init required gems](https://github.com/AlexeyAlexey/rails_examples/tree/feature/default-gems)
+### [Branch: Init required gems](https://github.com/AlexeyAlexey/rails_examples/tree/feature/default-gems)
 
 
 The following gems will be used to implement **Authentication/Authorization**
@@ -40,7 +40,7 @@ The following gems will be used to implement **Authentication/Authorization**
 
 
 
-### [Setting up Rubocop](https://github.com/AlexeyAlexey/rails_examples/tree/feature/rubocop-settuping)
+### [Branch: Setting up Rubocop - branch](https://github.com/AlexeyAlexey/rails_examples/tree/feature/rubocop-settuping)
 
 
 Disabled some styles
