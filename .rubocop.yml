@@ -3,3 +3,25 @@ require:
   - rubocop-rspec
   - rubocop-rails
   - rubocop-factory_bot
+
+
+Style/StringLiterals:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/SymbolArray:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Bundler/OrderedGems:
+  Enabled: false
+
+Style/PercentLiteralDelimiters:
+  Enabled: false
+
+Style/BlockComments:
+  Enabled: false
