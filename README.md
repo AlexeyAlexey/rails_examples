@@ -48,3 +48,57 @@ Disabled some styles
 Disabled some styles for some parts of code
 
 Fixed some offenses
+
+
+### [Branch: Added Service Object]()
+
+  You can find a lot of topics about **Rails Service Objects**
+
+  I copied it from [simple_command gem](https://github.com/nebulab/simple_command)
+
+
+
+```ruby
+module Services
+  class AuthenticateUser
+    # put ApplicationService before the class' ancestors chain
+    prepend ApplicationService
+
+    # optional, initialize the command with some arguments
+    def initialize(email, password)
+      @email = email
+      @password = password
+    end
+
+    # mandatory: define a #call method. its return value will be available
+    #            through #result
+    def call
+      begin
+        if user = User.find_by(email: @email)&.authenticate(@password)
+          return user
+        else
+          user_readable_errors.add(:base, :failure)
+        end
+      rescue StandardError => e
+        user_readable_errors.add(:base, :failure)
+        exceptions.add(:exception, "[#{self.class.name}] #{e.message}")
+      end
+      nil
+    end
+  end
+end
+
+service = Services::AuthenticateUser.call(user, password)
+
+if service.success?
+  # service.result will contain the user instance, if found
+  session[:user_token] = service.result.secret_token
+  redirect_to root_path
+else
+  Rails.logger.error service.exceptions.full_messages.join('; ') if service.exceptions.present?
+
+  flash.now[:alert] = service.user_readable_errors[:base].join(' ')
+
+  render :new
+end
+```
