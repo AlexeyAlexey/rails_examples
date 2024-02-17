@@ -50,9 +50,13 @@ Disabled some styles for some parts of code
 Fixed some offenses
 
 
-### [Branch: Added Service Object]()
+### [Branch: Added Service Object](https://github.com/AlexeyAlexey/rails_examples/tree/feature/application-service)
 
-  You can find a lot of topics about **Rails Service Objects**
+**Pull request**: https://github.com/AlexeyAlexey/rails_examples/pull/1
+
+  It is a simple, standardized way to build and use Service Objects
+
+  You can find a lot of topics about **Rails/Ruby Service Objects**
 
   I copied it from [simple_command gem](https://github.com/nebulab/simple_command)
 
