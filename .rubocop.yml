@@ -25,3 +25,6 @@ Style/PercentLiteralDelimiters:
 
 Style/BlockComments:
   Enabled: false
+
+RSpec/ExampleLength:
+  Enabled: false
