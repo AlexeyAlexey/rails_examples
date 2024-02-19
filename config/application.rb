@@ -11,6 +11,8 @@ module RailsExamples
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 7.1
 
+    config.jwt_token = config_for(:refresh_token)
+
     config.autoload_paths << "#{root}/services"
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do

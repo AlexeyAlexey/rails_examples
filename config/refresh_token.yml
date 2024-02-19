@@ -1,0 +1,8 @@
+production:
+  expire_at: 24 #hours
+
+development:
+  expire_at: 24
+
+test:
+  expire_at: 24
