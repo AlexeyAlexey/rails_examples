@@ -10,9 +10,45 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2024_02_18_120325) do
+ActiveRecord::Schema[7.1].define(version: 2024_02_19_062205) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
+
+  create_table "refresh_tokens", id: false, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.string "token", null: false
+    t.string "device", null: false
+    t.string "action", null: false
+    t.string "reason"
+    t.datetime "expire_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["device", "user_id", "created_at"], name: "index_refresh_tokens_on_device_and_user_id_and_created_at", order: { created_at: :desc }
+  end
+
+  create_table "user_refresh_tokens", id: false, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.string "token", null: false
+    t.string "device", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["device"], name: "index_user_refresh_tokens_on_device", using: :hash
+    t.index ["token"], name: "index_user_refresh_tokens_on_token", using: :hash
+  end
+
+  create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "password"
+    t.string "password_digest"
+    t.string "first_name", null: false
+    t.string "last_name"
+    t.integer "sign_in_count", default: 0, null: false
+    t.datetime "current_sign_in_at"
+    t.datetime "last_sign_in_at"
+    t.inet "current_sign_in_ip"
+    t.inet "last_sign_in_ip"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
 end
