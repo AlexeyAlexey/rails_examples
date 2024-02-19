@@ -25,6 +25,52 @@ describe ::ApplicationService do
     end
   end
 
+  describe 'input arguments' do
+    it 'receives keyword arguments' do
+      service =
+        Class.new do
+          prepend ::ApplicationService
+
+          def initialize(first:, second:)
+            @first = first
+            @second = second
+          end
+
+          def call
+            "#{first} #{second}"
+          end
+
+          private
+
+          attr_reader :first, :second
+        end
+
+      expect(service.call(first: 1, second: 2).result).to eq('1 2')
+    end
+
+    it 'receives positional arguments' do
+      service =
+        Class.new do
+          prepend ::ApplicationService
+
+          def initialize(first, second)
+            @first = first
+            @second = second
+          end
+
+          def call
+            "#{first} #{second}"
+          end
+
+          private
+
+          attr_reader :first, :second
+        end
+
+      expect(service.call(1, 2).result).to eq('1 2')
+    end
+  end
+
   describe '#success?' do
     context 'with no any errors' do
       let(:service) { ::ApplicationService::TestApplicationService.call(2) }
