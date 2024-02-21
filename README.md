@@ -102,3 +102,48 @@ else
   render :new
 end
 ```
+
+## Access Tokens (JWT) + Refresh Tokens - in progress
+
+There is a branch where I am playing around it.
+
+
+Branch: **feature/jwt-authorization-authentication**
+
+[Merge Request](https://github.com/AlexeyAlexey/rails_examples/pull/2/files)
+
+
+[What Are Refresh Tokens and How to Use Them Securely](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/)
+
+I have divided the task into the following tasks
+
+1. Refresh Token
+  
+  - Token issuing
+
+  - token rotation
+
+  - Automatic **Reuse Detection** (You can read [What Are Refresh Tokens and How to Use Them Securely](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/) topic to know more about it)
+
+  - Refactoring
+
+    - Paritions
+
+
+
+2. Access Tokens
+
+
+3. sign up
+  
+  - email
+
+  - phone
+
+  - one time password
+
+4. sign in
+
+  - two factor authentication
+
+I will add more information about this task to a README to **feature/jwt-authorization-authentication** branch
