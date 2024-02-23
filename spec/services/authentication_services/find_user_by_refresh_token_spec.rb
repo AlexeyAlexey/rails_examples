@@ -1,6 +1,16 @@
 require 'rails_helper'
 
 RSpec.describe ::AuthenticationServices::FindUserByRefreshToken do
+  before do
+    ::PartitionServices::CreateRefreshToken.call(from: DateTime.now.utc,
+                                                 to: DateTime.now.utc + 1.day,
+                                                 interval: '1 DAY')
+  end
+
+  after do
+    ::DBTest::DropTablePartitions.drop('refresh_tokens')
+  end
+
   describe 'when token can be found' do
     before do
       ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:)

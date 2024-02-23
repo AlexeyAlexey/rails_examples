@@ -49,3 +49,6 @@ RSpec/AnyInstance:
 
 Metrics/PerceivedComplexity:
   Enabled: false
+
+RSpec/DescribeClass:
+  Enabled: false

@@ -13,6 +13,7 @@ module AuthenticationServices
       ActiveRecord::Base.transaction do
         created_at = DateTime.now.utc
 
+        # It is not necessary to do it in transaction
         UserRefreshToken.create(user_id:,
                                 token: digest_token,
                                 device:,
