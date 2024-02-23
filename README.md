@@ -256,6 +256,7 @@ SELECT pg_size_pretty(pg_total_relation_size('index_refresh_tokens_on_device_and
 
 
 **refresh_tokens** table size
+
   ```1*10^6``` rows - 172 MB
 
   ```1*10^7``` rows - 1792 MB
@@ -277,9 +278,7 @@ A DB will grow on (~) 172 MB every hour. It is 4128 MB (172 * 24 = 4128 MB) ever
 10 million active users and refresh token lifetime is an 1 hour - 43008 MB every day
 
 
-We can delete a part of refresh keys that for example older than 4 hours
-
-It means that we can have a constant size of the table
+We can delete a part of refresh keys that for example older than 4 hours. It means that we can have a constant size of the table.
 
 When 1 million (```1*10^6```) active users, the size of the table is 688 MB (4 hours lifetime)
 
@@ -287,7 +286,7 @@ When 10 million (```10*10^6```) active users, the size of the table is 7168 MB (
 
 
 
-I try to considere the worse cases
+Let's try to considere the worse cases
 
 If you want to generate a new Refresh Key when you create a new Access Key (when you use a refresh key for it)
 
@@ -316,22 +315,25 @@ For this case we can reduce Refresh Key livetime up to 15 minutes
 
 
 
-We calculated an approximate size of the table based on the count of the active users
+We calculated an approximate size of the table based on the count of the active users.
 
 Our calculations based on that we delete old refresh tokens.
+
 
 How can we efficiently delete from the table?
 
 
 The main thing here that refresh token has a lifetime.
 
-We need to delete refresh tokens where created_at is less than some time.
+We can delete refresh tokens where **created_at** is less than some time.
 
 We should not forget that we also need to detect a Reuse Detection. I think there is not a case to have refresh tokens that are older than two/three lifetimes (?).
 
 
 
-Let's to think how can efficiently delete a bunch of rows from a table?
+Let's to think how can we efficiently delete a bunch of rows from a table?
+
+We can have a job that will delete a bunch of rows from the table every half of hour/hour/minute.
 
 
 
@@ -347,19 +349,14 @@ Bulk loads and deletes can be accomplished by adding or removing partitions, if 
 We need to choose, we want to have an hourly or a daily partition.
 
 
-
-We can have a job that will delete a bunch of rows from the table every half of hour/hour/minute.
-
-
-
-We do it not only for this reason of a table size.
+We do it not only for the reason of a table size.
 
 When the index size is grow, insert query performance degradates
 
 
 
 
-There is a PostgreSQL [pg_partman](https://github.com/pgpartman/pg_partman) extension.
+There is a [pg_partman](https://github.com/pgpartman/pg_partman) PostgreSQL extension.
 pg_partman is an extension to create and manage both time-based and number-based table partition sets
 
 
@@ -372,9 +369,11 @@ We can develop our own PostgreSQL functions to do it.
 
   - To speed up insertion, I deleted restriction on DB level. It is not so critical here, you can leave restriction on DB level
 
+  - Do not use the default partition, since it causes additional locking
 
-To see information about a table I use the following SQL command
-```# \d+ refresh_tokens```
+
+  To see information about a table I use the following SQL command
+  ```# \d+ refresh_tokens```
 
 
 
