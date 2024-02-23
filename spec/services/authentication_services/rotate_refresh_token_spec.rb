@@ -1,6 +1,16 @@
 require 'rails_helper'
 
 RSpec.describe ::AuthenticationServices::RotateRefreshToken do
+  before do
+    ::PartitionServices::CreateRefreshToken.call(from: DateTime.now.utc,
+                                                 to: DateTime.now.utc + 1.day,
+                                                 interval: '1 DAY')
+  end
+
+  after do
+    ::DBTest::DropTablePartitions.drop('refresh_tokens')
+  end
+
   describe 'success result' do
     context 'when only one refresh token exists' do
       let(:user_id) { create(:user).id }

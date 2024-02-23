@@ -10,21 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2024_02_19_062205) do
+ActiveRecord::Schema[7.1].define(version: 2024_02_23_160241) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
 
+  create_table "p_interval_frmt", id: false, force: :cascade do |t|
+    t.text "to_char"
+  end
+
   create_table "refresh_tokens", id: false, force: :cascade do |t|
-    t.uuid "user_id", null: false
-    t.string "token", null: false
-    t.string "device", null: false
-    t.string "action", null: false
-    t.string "reason"
-    t.datetime "expire_at", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["device", "user_id", "created_at"], name: "index_refresh_tokens_on_device_and_user_id_and_created_at", order: { created_at: :desc }
+    t.uuid "user_id"
+    t.text "token"
+    t.text "device"
+    t.text "action"
+    t.text "reason"
+    t.datetime "expire_at", precision: nil
+    t.datetime "created_at", precision: nil
   end
 
   create_table "user_refresh_tokens", id: false, force: :cascade do |t|
