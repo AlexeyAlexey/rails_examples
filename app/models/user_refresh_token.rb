@@ -1,0 +1,2 @@
+class UserRefreshToken < ApplicationRecord
+end

@@ -28,3 +28,27 @@ Style/BlockComments:
 
 RSpec/ExampleLength:
   Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+Style/WordArray:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+RSpec/AnyInstance:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+RSpec/DescribeClass:
+  Enabled: false
