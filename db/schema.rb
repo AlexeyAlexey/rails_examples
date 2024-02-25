@@ -15,10 +15,6 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_23_160241) do
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
 
-  create_table "p_interval_frmt", id: false, force: :cascade do |t|
-    t.text "to_char"
-  end
-
   create_table "refresh_tokens", id: false, force: :cascade do |t|
     t.uuid "user_id"
     t.text "token"

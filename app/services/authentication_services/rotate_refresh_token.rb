@@ -58,6 +58,8 @@ module AuthenticationServices
         return nil
       end
 
+      # detect a race condition ToReactIfRaceCondition.call()
+
       res.result
     end
 

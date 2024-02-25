@@ -243,11 +243,7 @@ TRUNCATE TABLE refresh_tokens;
 
 
 ```SQL
--- Table size
-SELECT pg_size_pretty(pg_total_relation_size('refresh_tokens'));
-
--- Index size
-SELECT pg_size_pretty(pg_total_relation_size('index_refresh_tokens_on_device_and_user_id_and_created_at'));
+ 
 
 
 ```
@@ -416,9 +412,216 @@ It is more flexible to create/change indexes on a partition level especially whe
 PostgreSQL - maximum name length is 63 characters
 
 
-5. DB Queries
+5. Creating a job to create partitions
+
+  **Postponed**
+
+Pre-creating partitions
+
+
+
+6. DB Queries
+
+In progress
 
 We need to take into account that we use partitions when we develop queries to the table
 
 
-I will explain it later
+The following query is used to select last two refresh token events
+
+```ruby
+refresh_tokens = RefreshToken.where(device:, user_id:).order(created_at: :desc).limit(2)
+```
+
+**It is the same**
+
+```SQL
+SELECT * FROM refresh_tokens
+WHERE device = 'device'
+  AND user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'
+ORDER BY created_at DESC
+LIMIT 2;
+```
+
+Let's see a query plan when partitions are used. EXPLAIN is used to do it. [DOC](https://www.postgresql.org/docs/15/using-explain.html)
+
+Creating partitions
+
+```ruby
+PartitionServices::CreateRefreshToken.call(from: '2024-02-01 12:00:00'.to_datetime.utc,
+                                           to: '2024-02-01 16:00:00'.to_datetime.utc,
+                                           interval: '1 hour')
+```
+
+
+```SQL
+# \d+ refresh_tokens
+
+                                            Partitioned table "public.refresh_tokens"
+   Column   |            Type             | Collation | Nullable | Default | Storage  | Compression | Stats target | Description 
+------------+-----------------------------+-----------+----------+---------+----------+-------------+--------------+-------------
+ user_id    | uuid                        |           |          |         | plain    |             |              | 
+ token      | text                        |           |          |         | extended |             |              | 
+ device     | text                        |           |          |         | extended |             |              | 
+ action     | text                        |           |          |         | extended |             |              | 
+ reason     | text                        |           |          |         | extended |             |              | 
+ expire_at  | timestamp without time zone |           |          |         | plain    |             |              | 
+ created_at | timestamp without time zone |           |          |         | plain    |             |              | 
+Partition key: RANGE (created_at)
+Partitions: refresh_tokens_p20240201_120000 FOR VALUES FROM ('2024-02-01 12:00:00') TO ('2024-02-01 13:00:00'),
+            refresh_tokens_p20240201_130000 FOR VALUES FROM ('2024-02-01 13:00:00') TO ('2024-02-01 14:00:00'),
+            refresh_tokens_p20240201_140000 FOR VALUES FROM ('2024-02-01 14:00:00') TO ('2024-02-01 15:00:00'),
+            refresh_tokens_p20240201_150000 FOR VALUES FROM ('2024-02-01 15:00:00') TO ('2024-02-01 16:00:00'),
+            refresh_tokens_p20240201_160000 FOR VALUES FROM ('2024-02-01 16:00:00') TO ('2024-02-01 17:00:00')
+
+
+```
+
+Let's consider a case when a current time is 14:25:00 (between '2024-02-01 13:00:00' and '2024-02-01 14:00:00'). The following partitions are pre-defined
+
+```SQL
+refresh_tokens_p20240201_150000 FOR VALUES FROM ('2024-02-01 15:00:00') TO ('2024-02-01 16:00:00'),
+refresh_tokens_p20240201_160000 FOR VALUES FROM ('2024-02-01 16:00:00') TO ('2024-02-01 17:00:00')
+```
+
+
+```SQL
+EXPLAIN SELECT * FROM refresh_tokens
+WHERE device = 'device'
+  AND user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'
+ORDER BY created_at DESC
+LIMIT 2;
+
+                                                               QUERY PLAN      
+ Limit  (cost=0.74..16.79 rows=2 width=160)
+   ->  Append  (cost=0.74..40.86 rows=5 width=160)
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_160000 on refresh_tokens_p20240201_160000 refresh_tokens_5  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid))
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_150000 on refresh_tokens_p20240201_150000 refresh_tokens_4  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid))
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_140000 on refresh_tokens_p20240201_140000 refresh_tokens_3  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid))
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_130000 on refresh_tokens_p20240201_130000 refresh_tokens_2  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid))
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_120000 on refresh_tokens_p20240201_120000 refresh_tokens_1  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid))
+(12 rows)
+```
+
+You can see that we scan every partitions even that we do not need.
+
+Partition key should be used in a query to fix it.
+
+```SQL
+EXPLAIN SELECT * FROM refresh_tokens
+WHERE device = 'device'
+  AND user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'
+  AND created_at < '2024-02-01 15:00:00'::TIMESTAMP -- <------ Added
+ORDER BY created_at DESC
+LIMIT 2;
+
+                                                              QUERY PLAN         
+ Limit  (cost=0.44..16.50 rows=2 width=160)
+   ->  Append  (cost=0.44..24.52 rows=3 width=160)
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_140000 on refresh_tokens_p20240201_140000 refresh_tokens_3  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid) AND (created_at < '2024-02-01 15:00:00'::timestamp without time zone))
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_130000 on refresh_tokens_p20240201_130000 refresh_tokens_2  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid) AND (created_at < '2024-02-01 15:00:00'::timestamp without time zone))
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_120000 on refresh_tokens_p20240201_120000 refresh_tokens_1  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid) AND (created_at < '2024-02-01 15:00:00'::timestamp without time zone))
+(8 rows)
+```
+
+The last two partitions are not scanned
+
+What if the only last two hours required
+
+```SQL
+EXPLAIN SELECT * FROM refresh_tokens
+WHERE device = 'device'
+  AND user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'
+  AND created_at >= '2024-02-01 13:00:00'::TIMESTAMP -- <--------- Added
+  AND created_at < '2024-02-01 15:00:00'::TIMESTAMP
+ORDER BY created_at DESC
+LIMIT 2;
+    
+                                                              QUERY PLAN      
+ Limit  (cost=0.29..16.36 rows=2 width=160)
+   ->  Append  (cost=0.29..16.36 rows=2 width=160)
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_140000 on refresh_tokens_p20240201_140000 refresh_tokens_2  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid) AND (created_at >= '2024-02-01 13:00:00'::timestamp without time zone) AND (created_at < '2024-02-01 15:00:00'::timestamp without time zone))
+         ->  Index Scan using inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_130000 on refresh_tokens_p20240201_130000 refresh_tokens_1  (cost=0.15..8.17 rows=1 width=160)
+               Index Cond: ((device = 'device'::text) AND (user_id = '70f5f3e8-e104-4ff1-b41f-3d76561cf2f7'::uuid) AND (created_at >= '2024-02-01 13:00:00'::timestamp without time zone) AND (created_at < '2024-02-01 15:00:00'::timestamp without time zone))
+(6 rows)
+
+```
+
+Now only two required partitions are scaned
+
+```
+inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_140000
+inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_130000
+```
+
+
+The following qeary is required to be changed
+
+```ruby
+refresh_tokens = RefreshToken.where(device:, user_id:).order(created_at: :desc).limit(2)
+```
+
+to
+
+```ruby
+refresh_tokens = RefreshToken
+  .where(device:, user_id:)
+  .where('created_at >= ? AND created_at < ?',
+     'It depends on refresh token lifetime (DateTime.now.utc - refresh token lifetime)',
+     'It depends on drift_seconds (DateTime.now.uts + drift_seconds)')
+  .order(created_at: :desc).limit(2)
+```
+
+```drift_seconds``` (see **Race Condition**)
+
+
+#### Race Condition
+
+**In progress**
+
+If the same refresh token is processed at the same time by two different requests - how to detect this?
+
+1. We can calculate difference betwean a created_at value of a new refresh token event and a created_at value the previouse refresh token event. If the difference less then 10 seconds, all refresh token for this user's device must be invalidated (revoked)
+
+
+If the same refresh token is processed at the same time by two different requests and it is detected, InvalidateRefreshTokens is called.
+
+2. You can say that this case will be resolved automatically on the next refresh token rotation. One of them will be asked to sing in and a new refresh token will be generated.
+
+
+
+#### Reuse Detection
+
+**In progress**
+
+Let's consider the following case
+
+1. Issued a refresh token (sing_in). refresh token lifetime is 1 hour. access token lifetime 5 minutes
+
+2. refresh token was stolen (at the beginning)
+
+3. the stolen refresh token is used to issue a new refresh token (after a 5 minutes)
+
+4. the stolen refresh token is used to issue a new refresh token (after a 10 minutes)
+
+5. The refresh token that was issued in 1 step is used to rotate a refresh token by agenuine user (after 30 minutes). It is failed. It cannot be detected as "Reuse Detection" because we consider only two last events now. (**Should be fixed**)
+
+6. The user will be asked to sign in. A new refresh token is generated.
+
+
+
+```ruby
+AuthenticationServices::InvalidateRefreshTokens
+```
+
+```drift_seconds``` this parameter can be used if user's refresh token should be invalidate manually (or out of the RotateRefreshToken service context). A new invalidate event is created to a couple seconds ahead to be sure that all valide refresh tokens are invalidated.
+
