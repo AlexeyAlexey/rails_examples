@@ -1,8 +1,8 @@
 production:
-  expire_at: 24 #hours
+  lifetime: 3600 # seconds
 
 development:
-  expire_at: 24
+  lifetime: 3600
 
 test:
-  expire_at: 24
+  lifetime: 3600

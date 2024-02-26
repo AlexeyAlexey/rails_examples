@@ -422,8 +422,6 @@ Pre-creating partitions
 
 6. DB Queries
 
-In progress
-
 We need to take into account that we use partitions when we develop queries to the table
 
 
@@ -581,7 +579,12 @@ refresh_tokens = RefreshToken
   .order(created_at: :desc).limit(2)
 ```
 
-```drift_seconds``` (see **Race Condition**)
+
+```drift_seconds``` this parameter can be used if user's refresh token should be invalidate manually (or out of the RotateRefreshToken service context). A new invalidate event is created to a couple seconds ahead to be sure that all valide refresh tokens are invalidated.
+
+```ruby
+AuthenticationServices::InvalidateRefreshTokens
+```
 
 
 #### Race Condition
@@ -601,8 +604,6 @@ If the same refresh token is processed at the same time by two different request
 
 #### Reuse Detection
 
-**In progress**
-
 Let's consider the following case
 
 1. Issued a refresh token (sing_in). refresh token lifetime is 1 hour. access token lifetime 5 minutes
@@ -613,7 +614,7 @@ Let's consider the following case
 
 4. the stolen refresh token is used to issue a new refresh token (after a 10 minutes)
 
-5. The refresh token that was issued in 1 step is used to rotate a refresh token by agenuine user (after 30 minutes). It is failed. It cannot be detected as "Reuse Detection" because we consider only two last events now. (**Should be fixed**)
+5. The refresh token that was issued in 1 step is used to rotate a refresh token by agenuine user (after 30 minutes). It is failed. It cannot be detected as "Reuse Detection" because we consider only two last events now. (**Should be fixed** - DONE)
 
 6. The user will be asked to sign in. A new refresh token is generated.
 

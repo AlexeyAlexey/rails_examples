@@ -1,6 +1,36 @@
 require 'rails_helper'
 
 RSpec.describe RefreshToken, type: :model do
+  describe '#expired?' do
+    it 'is true when it less than current time' do
+      expire_at = DateTime.now.utc - 1.hour
+
+      expect(described_class.new(expire_at:).expired?).to be true
+    end
+
+    it 'is false when it more than current time' do
+      expect(described_class.new(expire_at: 1.hour.from_now).expired?).to be false
+    end
+  end
+
+  describe '#not_expired?' do
+    it 'is false when expired? is true' do
+      refresh_token_object = described_class.new
+
+      allow(refresh_token_object).to receive(:expired?).and_return true
+
+      expect(refresh_token_object.not_expired?).to be false
+    end
+
+    it 'is true when expired? is false' do
+      refresh_token_object = described_class.new
+
+      allow(refresh_token_object).to receive(:expired?).and_return false
+
+      expect(refresh_token_object.not_expired?).to be true
+    end
+  end
+
   describe '#legal?' do
     context 'when it is true' do
       let(:expire_at) { 1.hour.from_now }

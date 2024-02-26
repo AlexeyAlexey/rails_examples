@@ -2,9 +2,9 @@ module AuthenticationServices
   class RotateRefreshToken
     prepend ::ApplicationService
 
-    def initialize(refresh_token:, expire_at:)
+    def initialize(refresh_token:, lifetime:)
       @refresh_token = refresh_token
-      @expire_at = expire_at
+      @lifetime = lifetime
     end
 
     def call
@@ -21,7 +21,7 @@ module AuthenticationServices
       device = user_refresh_token.result.device
       user_id = user_refresh_token.result.user_id
 
-      res = CheckUserRefreshToken.call(device:, user_id:, refresh_token:)
+      res = CheckUserRefreshToken.call(device:, user_id:, refresh_token:, lifetime:)
 
       if res.failure?
         exceptions.add_multiple_errors res.exceptions if res.exceptions.present?
@@ -47,7 +47,7 @@ module AuthenticationServices
       res = AuthenticationServices::IssueRefreshToken.call(user_id:,
                                                            action: 'rotated',
                                                            device:,
-                                                           expire_at:)
+                                                           expire_at: DateTime.now.utc + lifetime.seconds)
 
       if res.failure?
         exceptions.add :exception, "[#{self.class.name}] a token cannot be issued device: #{device}"
@@ -58,13 +58,13 @@ module AuthenticationServices
         return nil
       end
 
-      # detect a race condition ToReactIfRaceCondition.call()
+      # detect a race condition ToReactIfRaceCondition.call(device:, user_id:,)
 
       res.result
     end
 
     private
 
-    attr_reader :refresh_token, :expire_at
+    attr_reader :refresh_token, :lifetime
   end
 end

@@ -54,3 +54,9 @@ Metrics/PerceivedComplexity:
 
 RSpec/DescribeClass:
   Enabled: false
+
+Style/NumericLiterals:
+  Enabled: false
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false

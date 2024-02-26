@@ -16,12 +16,13 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
       let(:user_id) { create(:user).id }
       let(:device) { 'device' }
       let(:expire_at) { 1.hour.from_now }
+      let(:lifetime) { 40000 }
 
       let!(:issued_token) do
         ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
       end
 
-      let(:refresh_token) { described_class.call(device:, user_id:, refresh_token: issued_token) }
+      let(:refresh_token) { described_class.call(device:, user_id:, refresh_token: issued_token, lifetime:) }
 
       it 'returns a refresh token' do
         expect(refresh_token.success?).to be true
@@ -39,12 +40,13 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
       let(:user_id) { create(:user).id }
       let(:device) { 'device' }
       let(:expire_at) { 1.hour.from_now }
+      let(:lifetime) { 40000 }
 
       let(:third_issued_token) do
         ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
       end
 
-      let(:token_service) { described_class.call(device:, user_id:, refresh_token: third_issued_token) }
+      let(:token_service) { described_class.call(device:, user_id:, refresh_token: third_issued_token, lifetime:) }
 
       it 'returns a refresh token' do
         expect(token_service.success?).to be true
@@ -62,12 +64,40 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
     let(:user_id) { create(:user).id }
     let(:device) { 'device' }
     let(:expire_at) { 1.hour.from_now }
+    let(:lifetime) { 40000 }
 
     let!(:issued_token) do
       ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
     end
 
-    let(:token_service) { described_class.call(device:, user_id:, refresh_token: issued_token) }
+    let(:token_service) { described_class.call(device:, user_id:, refresh_token: issued_token, lifetime:) }
+
+    it 'is not success' do
+      expect(token_service.success?).to be false
+      expect(token_service.result).to be_nil
+    end
+
+    it 'returns user readable error' do
+      expect(token_service.user_readable_errors.full_messages)
+        .to eq(['Authentication invalid credentials'])
+    end
+
+    it 'does not return exceptions' do
+      expect(token_service.exceptions.full_messages).to eq([])
+    end
+  end
+
+  describe 'when a refresh token is expired' do
+    let(:user_id) { create(:user).id }
+    let(:device) { 'device' }
+    let(:expire_at) { 1.hour.from_now }
+    let(:lifetime) { 40000 }
+
+    let(:refresh_token) do
+      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at: DateTime.now - 1.hour).result
+    end
+
+    let(:token_service) { described_class.call(device:, user_id:, refresh_token:, lifetime:) }
 
     it 'is not success' do
       expect(token_service.success?).to be false
@@ -92,8 +122,9 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
     let(:user_id) { create(:user).id }
     let(:device) { 'device' }
     let(:expire_at) { 1.hour.from_now }
+    let(:lifetime) { 40000 }
 
-    let(:token_service) { described_class.call(device:, user_id:, refresh_token: 'fake-token') }
+    let(:token_service) { described_class.call(device:, user_id:, refresh_token: 'fake-token', lifetime:) }
 
     it 'is not success' do
       expect(token_service.success?).to be false
@@ -110,39 +141,45 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
     end
   end
 
-  # rubocop:disable RSpec/MultipleMemoizedHelpers
   describe 'Reuse detection' do
     context 'when last token is not sing_in' do
+      before do
+        first_issued_token
+        second_issued_token
+      end
+
       let(:user_id) { create(:user).id }
       let(:device) { 'device' }
       let(:expire_at) { 1.hour.from_now }
+      let(:lifetime) { 40000 }
 
       let!(:first_issued_token) do
         ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
       end
 
-      let(:token_service) { described_class.call(device:, user_id:, refresh_token: first_issued_token) }
+      let(:second_issued_token) do
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+      end
+
+      let(:token_service) { described_class.call(device:, user_id:, refresh_token: first_issued_token, lifetime:) }
 
       let(:current_token) do
         ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
       end
 
       it 'is not success' do
-        # second_issued_token
         current_token
         expect(token_service.success?).to be false
         expect(token_service.result).to be_nil
       end
 
       it 'returns user readable error' do
-        # second_issued_token
         current_token
         expect(token_service.user_readable_errors.full_messages)
           .to eq(['Authentication invalid credentials'])
       end
 
       it 'returns "Detected Reuse detection" exceptions' do
-        # second_issued_token
         current_token
         expect(token_service.exceptions.full_messages).to eq(['Detected Reuse detection'])
       end
@@ -152,12 +189,13 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
       let(:user_id) { create(:user).id }
       let(:device) { 'device' }
       let(:expire_at) { 1.hour.from_now }
+      let(:lifetime) { 40000 }
 
       let!(:first_issued_token) do
         ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
       end
 
-      let(:token_service) { described_class.call(device:, user_id:, refresh_token: first_issued_token) }
+      let(:token_service) { described_class.call(device:, user_id:, refresh_token: first_issued_token, lifetime:) }
 
       let(:current_token) do
         ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, action: 'sing_in', expire_at:).result
@@ -185,7 +223,7 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
     end
   end
 
-  describe 'when old refresh token is used' do
+  describe 'when expired refresh token is used' do
     before do
       first_issued_token
       second_issued_token
@@ -195,9 +233,12 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
     let(:user_id) { create(:user).id }
     let(:device) { 'device' }
     let(:expire_at) { 1.hour.from_now }
+    let(:lifetime) { 40000 }
 
     let(:first_issued_token) do
-      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+      ::AuthenticationServices::IssueRefreshToken.call(user_id:,
+                                                       device:,
+                                                       expire_at: DateTime.now.utc - 10.seconds).result
     end
 
     let(:second_issued_token) do
@@ -208,7 +249,7 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
       ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
     end
 
-    let(:token_service) { described_class.call(device:, user_id:, refresh_token: first_issued_token) }
+    let(:token_service) { described_class.call(device:, user_id:, refresh_token: first_issued_token, lifetime:) }
 
     it 'is not success' do
       expect(token_service.success?).to be false
@@ -224,5 +265,4 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
       expect(token_service.exceptions.full_messages).to eq([])
     end
   end
-  # rubocop:enable RSpec/MultipleMemoizedHelpers
 end

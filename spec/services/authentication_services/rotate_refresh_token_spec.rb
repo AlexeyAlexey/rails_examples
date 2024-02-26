@@ -16,12 +16,13 @@ RSpec.describe ::AuthenticationServices::RotateRefreshToken do
       let(:user_id) { create(:user).id }
       let(:device) { 'device' }
       let(:expire_at) { 1.hour.from_now }
+      let(:lifetime) { 4000 }
 
       let!(:issued_token) do
         ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
       end
 
-      let(:token_service) { described_class.call(refresh_token: issued_token, expire_at:) }
+      let(:token_service) { described_class.call(refresh_token: issued_token, lifetime:) }
 
       it 'returns a refresh token' do
         expect(token_service.success?).to be true
@@ -39,12 +40,13 @@ RSpec.describe ::AuthenticationServices::RotateRefreshToken do
       let(:user_id) { create(:user).id }
       let(:device) { 'device' }
       let(:expire_at) { 1.hour.from_now }
+      let(:lifetime) { 4000 }
 
       let(:third_issued_token) do
         ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
       end
 
-      let(:token_service) { described_class.call(refresh_token: third_issued_token, expire_at:) }
+      let(:token_service) { described_class.call(refresh_token: third_issued_token, lifetime:) }
 
       it 'returns a refresh token' do
         expect(token_service.success?).to be true
@@ -65,12 +67,13 @@ RSpec.describe ::AuthenticationServices::RotateRefreshToken do
     let(:user_id) { create(:user).id }
     let(:device) { 'device' }
     let(:expire_at) { 1.hour.from_now }
+    let(:lifetime) { 4000 }
 
     let!(:issued_token) do
       ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
     end
 
-    let(:token_service) { described_class.call(refresh_token: issued_token, expire_at:) }
+    let(:token_service) { described_class.call(refresh_token: issued_token, lifetime:) }
 
     it 'is not success' do
       expect(token_service.success?).to be false
@@ -95,8 +98,9 @@ RSpec.describe ::AuthenticationServices::RotateRefreshToken do
     let(:user_id) { create(:user).id }
     let(:device) { 'device' }
     let(:expire_at) { 1.hour.from_now }
+    let(:lifetime) { 4000 }
 
-    let(:token_service) { described_class.call(refresh_token: 'faketoken', expire_at:) }
+    let(:token_service) { described_class.call(refresh_token: 'faketoken', lifetime:) }
 
     it 'is not success' do
       expect(token_service.success?).to be false
@@ -117,12 +121,13 @@ RSpec.describe ::AuthenticationServices::RotateRefreshToken do
     let(:user_id) { create(:user).id }
     let(:device) { 'device' }
     let(:expire_at) { 1.hour.from_now }
+    let(:lifetime) { 4000 }
 
     let!(:first_issued_token) do
       ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
     end
 
-    let(:token_service) { described_class.call(refresh_token: first_issued_token, expire_at:) }
+    let(:token_service) { described_class.call(refresh_token: first_issued_token, lifetime:) }
 
     it 'is not success' do
       # second_issued_token
@@ -145,8 +150,7 @@ RSpec.describe ::AuthenticationServices::RotateRefreshToken do
     end
   end
 
-  # rubocop:disable RSpec/MultipleMemoizedHelpers
-  describe 'when old refresh token is used' do
+  describe 'when expired refresh token is used' do
     before do
       first_issued_token
       second_issued_token
@@ -156,9 +160,12 @@ RSpec.describe ::AuthenticationServices::RotateRefreshToken do
     let(:user_id) { create(:user).id }
     let(:device) { 'device' }
     let(:expire_at) { 1.hour.from_now }
+    let(:lifetime) { 4000 }
 
     let(:first_issued_token) do
-      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+      ::AuthenticationServices::IssueRefreshToken.call(user_id:,
+                                                       device:,
+                                                       expire_at: DateTime.now.utc - 10.seconds).result
     end
 
     let(:second_issued_token) do
@@ -169,7 +176,7 @@ RSpec.describe ::AuthenticationServices::RotateRefreshToken do
       ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
     end
 
-    let(:token_service) { described_class.call(refresh_token: first_issued_token, expire_at:) }
+    let(:token_service) { described_class.call(refresh_token: first_issued_token, lifetime:) }
 
     it 'is not success' do
       expect(token_service.success?).to be false
@@ -185,5 +192,4 @@ RSpec.describe ::AuthenticationServices::RotateRefreshToken do
       expect(token_service.exceptions.full_messages).to eq([])
     end
   end
-  # rubocop:enable RSpec/MultipleMemoizedHelpers
 end

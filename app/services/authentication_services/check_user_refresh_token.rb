@@ -2,10 +2,11 @@ module AuthenticationServices
   class CheckUserRefreshToken
     prepend ::ApplicationService
 
-    def initialize(device:, user_id:, refresh_token:)
+    def initialize(device:, user_id:, refresh_token:, lifetime:)
       @device = device
       @user_id = user_id
       @refresh_token = refresh_token
+      @lifetime = lifetime
     end
 
     def call
@@ -22,9 +23,15 @@ module AuthenticationServices
         return nil
       end
 
-      refresh_tokens = RefreshToken.where(device:, user_id:).order(created_at: :desc).limit(2)
+      refresh_tokens = RefreshToken.where(device:, user_id:)
+                                   .where('created_at >= ? AND created_at <= ?',
+                                          DateTime.now.utc - lifetime.seconds,
+                                          DateTime.now.utc + 10.seconds)
+                                   .order(created_at: :desc)
 
-      current_refresh_token, prev_refresh_token = refresh_tokens
+      current_refresh_token, *rest_refresh_tokens = refresh_tokens
+
+      prev_refresh_tokens = rest_refresh_tokens.find_all(&:not_expired?).map(&:token)
 
       if current_refresh_token.blank?
         user_readable_errors.add(:authentication, 'invalid credentials')
@@ -32,7 +39,13 @@ module AuthenticationServices
         return nil
       end
 
-      if current_refresh_token.token != digest_token && prev_refresh_token&.token == digest_token
+      if current_refresh_token.expired?
+        user_readable_errors.add(:authentication, 'invalid credentials')
+
+        return nil
+      end
+
+      if current_refresh_token.token != digest_token && prev_refresh_tokens.include?(digest_token)
 
         exceptions.add :detected, 'Reuse detection' if current_refresh_token.action != 'sing_in'
 
@@ -58,7 +71,7 @@ module AuthenticationServices
 
     private
 
-    attr_reader :device, :user_id, :refresh_token
+    attr_reader :device, :user_id, :refresh_token, :lifetime
 
     def digest_token
       @digest_token ||= Digest::SHA256.hexdigest(refresh_token)
