@@ -165,7 +165,12 @@ I will add more information about this task to a README to **feature/jwt-authori
 Event Sourcing architectural pattern is used.
 
 
-**user_refresh_tokens**
+#### user_refresh_tokens
+
+Considering two options
+
+1.
+
   This table is used to save a refresh token and a relation to a user and a device
 
   We use this table to find a user and a device values by a token
@@ -173,8 +178,60 @@ Event Sourcing architectural pattern is used.
   You can use btree index to use uniqueness checking to guarantee that a token is unique on a db level
   or you can use Distributed Unique ID
 
-  It is not necessary to use this table. You can create services where one of them is responsible to generate a refresh token another one to find a user and a device values by a token
 
+It is not necessary to use this table. You can create services where one of them is responsible to generate a refresh token another one to find a user and a device values by a token
+
+2.
+
+Let's talk about a refresh token format.
+
+  We can read the following from [RFC6749 1.5 Refresh Token](https://datatracker.ietf.org/doc/html/rfc6749#section-1.5)
+
+   A refresh token is a string representing the authorization granted to
+   the client by the resource owner.  The string is usually opaque to
+   the client. The token denotes an identifier used to retrieve the
+   authorization information.  Unlike access tokens, refresh tokens are
+   intended for use only with authorization servers and are never sent
+   to resource servers.
+
+
+There is not described a refresh token format. I tried to find some information, what are refresh token formats used.
+No one wantes to describe it. It is usually a long string.
+
+Refresh tokens are encrypted and only the Microsoft identity platform can read them. [Microsoft Refresh Token](https://learn.microsoft.com/en-us/entra/identity-platform/refresh-tokens)
+
+
+
+Let's consider the following format.
+
+We can use a JWT
+
+1. We can validate data integrity
+
+2. We can include the following data
+
+  sub - "Refresh Token"
+
+  exp/expires_in - Expiration Time
+
+    We can validate if token is not expired without quering a DB
+
+  aud - user_id
+
+  jti - uuid
+
+  device: "device"
+
+
+We can now to know all required data without quering a user_refresh_tokens table.
+
+We can encrypt JWT to hide internal data representation.
+
+We can delete a device index from a refresh_tokens table. A refresh token can be presented as jti:device (uuid:device)
+
+
+
+[RFC6749 10.4 Refresh Tokens](https://datatracker.ietf.org/doc/html/rfc6749#section-10.4)
 
 #### refresh_tokens table
 
@@ -626,3 +683,5 @@ AuthenticationServices::InvalidateRefreshTokens
 
 ```drift_seconds``` this parameter can be used if user's refresh token should be invalidate manually (or out of the RotateRefreshToken service context). A new invalidate event is created to a couple seconds ahead to be sure that all valide refresh tokens are invalidated.
 
+
+[RFC6749 The OAuth 2.0 Authorization Framework](https://datatracker.ietf.org/doc/html/rfc6749#section-1.5)
