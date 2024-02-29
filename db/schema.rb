@@ -25,16 +25,6 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_23_160241) do
     t.datetime "created_at", precision: nil
   end
 
-  create_table "user_refresh_tokens", id: false, force: :cascade do |t|
-    t.uuid "user_id", null: false
-    t.string "token", null: false
-    t.string "device", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["device"], name: "index_user_refresh_tokens_on_device", using: :hash
-    t.index ["token"], name: "index_user_refresh_tokens_on_token", using: :hash
-  end
-
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "password"
     t.string "password_digest"

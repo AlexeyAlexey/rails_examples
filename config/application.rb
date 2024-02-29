@@ -11,7 +11,8 @@ module RailsExamples
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 7.1
 
-    config.jwt_token = config_for(:refresh_token)
+    # config.refresh_token = config_for(:refresh_token)
+    config.access_token = config_for(:access_token)
 
     config.autoload_paths << "#{root}/services"
 

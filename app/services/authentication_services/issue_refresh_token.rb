@@ -10,36 +10,30 @@ module AuthenticationServices
     end
 
     def call
-      ActiveRecord::Base.transaction do
-        created_at = DateTime.now.utc
+      res = ::AuthenticationServices::GenerateRefreshToken.call(user_id:, device:, expire_at:)
 
-        # It is not necessary to do it in transaction
-        UserRefreshToken.create(user_id:,
-                                token: digest_token,
-                                device:,
-                                created_at:)
+      if res.failure?
+        exceptions.add_multiple_errors res.exceptions
 
-        RefreshToken.create(user_id:,
-                            token: digest_token,
-                            device:,
-                            action:,
-                            expire_at:,
-                            created_at:)
+        return nil
       end
 
-      token
+      RefreshToken.create(user_id:,
+                          token: Digest::SHA256.hexdigest(res.result.token),
+                          device:,
+                          action:,
+                          expire_at:,
+                          created_at: DateTime.now.utc)
+
+      response_object.new(user_token: res.result.user_token, token: res.result.token)
     end
 
     private
 
     attr_reader :user_id, :device, :action, :expire_at
 
-    def token
-      @token ||= SecureRandom.urlsafe_base64(52)
-    end
-
-    def digest_token
-      @digest_token ||= Digest::SHA256.hexdigest(token)
+    def response_object
+      @response_object ||= Struct.new(:user_token, :token)
     end
   end
 end

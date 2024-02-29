@@ -19,22 +19,22 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
       let(:lifetime) { 40000 }
 
       let!(:issued_token) do
-        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result.token
       end
 
       let(:refresh_token) { described_class.call(device:, user_id:, refresh_token: issued_token, lifetime:) }
 
       it 'returns a refresh token' do
-        expect(refresh_token.success?).to be true
+        expect(refresh_token).to be_success
         expect(refresh_token.result).to be_a String
-        expect(refresh_token.result.length).to eq 70
+        expect(refresh_token.result.length).to be > 70
       end
     end
 
     context 'when there are a sequence refresh tokens' do
       before do
-        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
-        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:)
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:)
       end
 
       let(:user_id) { create(:user).id }
@@ -43,15 +43,15 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
       let(:lifetime) { 40000 }
 
       let(:third_issued_token) do
-        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result.token
       end
 
       let(:token_service) { described_class.call(device:, user_id:, refresh_token: third_issued_token, lifetime:) }
 
       it 'returns a refresh token' do
-        expect(token_service.success?).to be true
+        expect(token_service).to be_success
         expect(token_service.result).to be_a String
-        expect(token_service.result.length).to eq 70
+        expect(token_service.result.length).to be > 70
       end
     end
   end
@@ -67,13 +67,13 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
     let(:lifetime) { 40000 }
 
     let!(:issued_token) do
-      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result.token
     end
 
     let(:token_service) { described_class.call(device:, user_id:, refresh_token: issued_token, lifetime:) }
 
     it 'is not success' do
-      expect(token_service.success?).to be false
+      expect(token_service).to be_failure
       expect(token_service.result).to be_nil
     end
 
@@ -94,13 +94,13 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
     let(:lifetime) { 40000 }
 
     let(:refresh_token) do
-      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at: DateTime.now - 1.hour).result
+      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at: DateTime.now - 1.hour).result.token
     end
 
     let(:token_service) { described_class.call(device:, user_id:, refresh_token:, lifetime:) }
 
     it 'is not success' do
-      expect(token_service.success?).to be false
+      expect(token_service).to be_failure
       expect(token_service.result).to be_nil
     end
 
@@ -116,7 +116,7 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
 
   describe 'when token cannot be found' do
     before do
-      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:)
     end
 
     let(:user_id) { create(:user).id }
@@ -127,7 +127,7 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
     let(:token_service) { described_class.call(device:, user_id:, refresh_token: 'fake-token', lifetime:) }
 
     it 'is not success' do
-      expect(token_service.success?).to be false
+      expect(token_service).to be_failure
       expect(token_service.result).to be_nil
     end
 
@@ -154,22 +154,22 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
       let(:lifetime) { 40000 }
 
       let!(:first_issued_token) do
-        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result.token
       end
 
       let(:second_issued_token) do
-        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:)
       end
 
       let(:token_service) { described_class.call(device:, user_id:, refresh_token: first_issued_token, lifetime:) }
 
       let(:current_token) do
-        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:)
       end
 
       it 'is not success' do
         current_token
-        expect(token_service.success?).to be false
+        expect(token_service).to be_failure
         expect(token_service.result).to be_nil
       end
 
@@ -192,19 +192,19 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
       let(:lifetime) { 40000 }
 
       let!(:first_issued_token) do
-        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result.token
       end
 
       let(:token_service) { described_class.call(device:, user_id:, refresh_token: first_issued_token, lifetime:) }
 
       let(:current_token) do
-        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, action: 'sing_in', expire_at:).result
+        ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, action: 'sing_in', expire_at:)
       end
 
       it 'is not success' do
         # second_issued_token
         current_token
-        expect(token_service.success?).to be false
+        expect(token_service).to be_failure
         expect(token_service.result).to be_nil
       end
 
@@ -238,21 +238,21 @@ RSpec.describe ::AuthenticationServices::CheckUserRefreshToken do
     let(:first_issued_token) do
       ::AuthenticationServices::IssueRefreshToken.call(user_id:,
                                                        device:,
-                                                       expire_at: DateTime.now.utc - 10.seconds).result
+                                                       expire_at: DateTime.now.utc - 10.seconds).result.token
     end
 
     let(:second_issued_token) do
-      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:)
     end
 
     let(:third_issued_token) do
-      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:).result
+      ::AuthenticationServices::IssueRefreshToken.call(user_id:, device:, expire_at:)
     end
 
     let(:token_service) { described_class.call(device:, user_id:, refresh_token: first_issued_token, lifetime:) }
 
     it 'is not success' do
-      expect(token_service.success?).to be false
+      expect(token_service).to be_failure
       expect(token_service.result).to be_nil
     end
 

@@ -23,8 +23,9 @@ module AuthenticationServices
         return nil
       end
 
-      refresh_tokens = RefreshToken.where(device:, user_id:)
-                                   .where('created_at >= ? AND created_at <= ?',
+      # device is not used in the query because a device value is a part of a token
+      refresh_tokens = RefreshToken.where('user_id = ? AND created_at >= ? AND created_at <= ?',
+                                          user_id,
                                           DateTime.now.utc - lifetime.seconds,
                                           DateTime.now.utc + 10.seconds)
                                    .order(created_at: :desc)

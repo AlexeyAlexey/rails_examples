@@ -167,23 +167,23 @@ Event Sourcing architectural pattern is used.
 
 #### user_refresh_tokens
 
-Considering two options
+Considering the following two options
 
 1.
 
   This table is used to save a refresh token and a relation to a user and a device
 
-  We use this table to find a user and a device values by a token
+  We use this table to find a user and a device values by using a token
 
   You can use btree index to use uniqueness checking to guarantee that a token is unique on a db level
   or you can use Distributed Unique ID
 
 
-It is not necessary to use this table. You can create services where one of them is responsible to generate a refresh token another one to find a user and a device values by a token
+It is not necessary to use this table. You can create services where one is responsible for generating a refresh token and the other one for finding user and device values by using token.
 
 2.
 
-Let's talk about a refresh token format.
+Let's consider a refresh token format.
 
   We can read the following from [RFC6749 1.5 Refresh Token](https://datatracker.ietf.org/doc/html/rfc6749#section-1.5)
 
@@ -195,8 +195,7 @@ Let's talk about a refresh token format.
    to resource servers.
 
 
-There is not described a refresh token format. I tried to find some information, what are refresh token formats used.
-No one wantes to describe it. It is usually a long string.
+The refresh token is not described. I tried to find some information sbout which refresh token formats are used. I was not able to find any descrirptions. It is usually a long string.
 
 Refresh tokens are encrypted and only the Microsoft identity platform can read them. [Microsoft Refresh Token](https://learn.microsoft.com/en-us/entra/identity-platform/refresh-tokens)
 
@@ -210,41 +209,41 @@ We can use a JWT
 
 2. We can include the following data
 
-  sub - "Refresh Token"
+  ```sub``` - "Refresh Token"
 
-  exp/expires_in - Expiration Time
+  ```exp``` - Expiration Time
 
-    We can validate if token is not expired without quering a DB
+  ```aud``` - user_id
 
-  aud - user_id
+  ```jti``` - uuid
 
-  jti - uuid
-
-  device: "device"
+  ```device``` - device
 
 
-We can now to know all required data without quering a user_refresh_tokens table.
+We can validate if token is not expired without quering a DB
+
+We can now know all required data withoput quering a ```user_refresh_tokens``` table
 
 We can encrypt JWT to hide internal data representation.
 
 We can delete a device index from a refresh_tokens table. A refresh token can be presented as jti:device (uuid:device)
 
+[OpenSSL Cipher](https://ruby-doc.org/stdlib-3.0.1/libdoc/openssl/rdoc/OpenSSL/Cipher.html)
 
 
 [RFC6749 10.4 Refresh Tokens](https://datatracker.ietf.org/doc/html/rfc6749#section-10.4)
 
 #### refresh_tokens table
 
-  Refresh Tokens changes are saved as a sequence of events
+  Refresh Tokens' changes are saved as a sequence of events
 
+  user_id, device, token values are used to find the last events.
 
-  user_id, device, token values are used to find last two events.
+  We can detect "Reuse Detection" based on the last events
 
-  We can detect "Reuse Detection" based on the two events
+  We use the last event to detect if the current refresh token is valid/legal.
 
-  We use last event to detect if the current refresh token is valid/legal.
-
-  Multicolumn indexes were added to speed up DB queary to select last events.
+  Multicolumn indices were added to speed up DB query to select last events.
 
   ```[:device, :user_id, :created_at], order: { created_at: :desc }```
 
@@ -253,22 +252,24 @@ We can delete a device index from a refresh_tokens table. A refresh token can be
 
   An important special case is ORDER BY in combination with LIMIT n: an explicit sort will have to process all the data to identify the first n rows, but if there is an index matching the ORDER BY, the first n rows can be **retrieved directly, without scanning the remainder at all**. 
 
-  It's also often used for queries that have an ORDER BY condition that matches the index order, because then no extra sorting step is needed to satisfy the ORDER BY 
+  It is also often used for queries that have an ORDER BY condition that matches the index order, because then no extra sorting step is needed to satisfy the ORDER BY 
 
   [DOC](https://www.postgresql.org/docs/15/indexes-ordering.html)
 
 
-  Let's check if have gain from this index
-  Let's check if this index is used when we do a queary
+  Let's check if we gaing anything from using this index.
+
+  Let's check if the index is used when we do a query.
+
 
   We only add new rows to the table.
 
   ```updated_at``` is a redundant column for the table where we are only adding.
 
 
-Let's fill up a table to see what a table size can be.
+Let's fill in a table to see what a table size we can have.
 
-We will use the followin query to do it. This query was used before partition implementation. You need to create partitions if you use partitions.
+We will use the followin query to do it. This query was used before partition implementation. If you use partitions you need to create then.
 
 Seeds
 ```SQL
@@ -324,43 +325,43 @@ TRUNCATE TABLE refresh_tokens;
 
 We can see that the table is not small. 
 
-If we have a 1 million (```1*10^6```) active users and refresh token lifetime is a 1 hour. 
+If we have 1 million (```1*10^6```) active users and refresh token lifetime is 1 hour.
 
-A DB will grow on (~) 172 MB every hour. It is 4128 MB (172 * 24 = 4128 MB) every day
+A DB will grow by (~) 172 MB every hour. It is 4128 MB (172 * 24 = 4128 MB) every day.
 
-10 million active users and refresh token lifetime is an 1 hour - 43008 MB every day
-
-
-We can delete a part of refresh keys that for example older than 4 hours. It means that we can have a constant size of the table.
-
-When 1 million (```1*10^6```) active users, the size of the table is 688 MB (4 hours lifetime)
-
-When 10 million (```10*10^6```) active users, the size of the table is 7168 MB (4 hours lifetime)
+10 million active users and a refresh token lifetime is 1 hour - 43008 MB every day.
 
 
+We can delete some of the refresh keys, for example the ones older than 4 hours. It means that we can have a constant size of the table.
 
-Let's try to considere the worse cases
+For 1 million (```1*10^6```) active users, the size of the table is 688 MB (4 hours lifetime)
 
-If you want to generate a new Refresh Key when you create a new Access Key (when you use a refresh key for it)
+For 10 million (```10*10^6```) active users, the size of the table is 7168 MB (4 hours lifetime)
 
 
-Access Key lifetime is 1 minutes
 
-1 million (```1*10^6```) active users:
+Let's consider the worst case
+
+If you want to generate a new Refresh Key while creating a new Access Key (when you use a refresh key for it).
+
+
+The Access Key lifetime is 1 minute
+
+For 1 million (```1*10^6```) active users:
 
   60 minutes * 172 MB = 10320 MB (per hour)
 
 
-10 million (```10*10^6```) active users:
+For 10 million (```10*10^6```) active users:
 
 
   60 minutes * 1792 MB = 107520 MB (per hour)
 
 
 
-For this case we can reduce Refresh Key livetime up to 15 minutes
+For this case we can reduce Refresh Key livetime to 15 minutes
 
- We can delete refresh tokens that are older than 45 minutes
+We can delete refresh tokens that are older than 45 minutes
 
  1 million (```1*10^6```) active users require 7740 MB
 
@@ -368,25 +369,25 @@ For this case we can reduce Refresh Key livetime up to 15 minutes
 
 
 
-We calculated an approximate size of the table based on the count of the active users.
+We calculated an approximate size of the table based on the count of active users.
 
-Our calculations based on that we delete old refresh tokens.
-
-
-How can we efficiently delete from the table?
+Our calculations based on the fact that we delete old refresh tokens.
 
 
-The main thing here that refresh token has a lifetime.
+How can we delete from the tanle efficiently?
+
+
+The main thing here is that a refresh token has a lifetime.
 
 We can delete refresh tokens where **created_at** is less than some time.
 
-We should not forget that we also need to detect a Reuse Detection. I think there is not a case to have refresh tokens that are older than two/three lifetimes (?).
+We should not forget that we also need to detect a Reuse Detection. I think we should have refresh tokens that are older than than two/three lifetimes (?).
 
 
 
-Let's to think how can we efficiently delete a bunch of rows from a table?
+Let's consider how we can efficiently delete a bunch of rows from a table?
 
-We can have a job that will delete a bunch of rows from the table every half of hour/hour/minute.
+We can have a job that will delete a bulk of rows from the table every half of hour/hour/minute.
 
 
 
@@ -399,10 +400,10 @@ Bulk loads and deletes can be accomplished by adding or removing partitions, if 
 
 
 
-We need to choose, we want to have an hourly or a daily partition.
+We need to choose, if we want to have an hourly or a daily partition.
 
 
-We do it not only for the reason of a table size.
+We do it not only because of the table size.
 
 When the index size is grow, insert query performance degradates
 

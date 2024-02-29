@@ -1,8 +1,0 @@
-production:
-  lifetime: 3600 # seconds
-
-development:
-  lifetime: 3600
-
-test:
-  lifetime: 3600

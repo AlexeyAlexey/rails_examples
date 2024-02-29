@@ -28,7 +28,7 @@ class CreateRefreshTokens < ActiveRecord::Migration[7.1]
       DROP TABLE IF EXISTS public.refresh_tokens_default;
     SQL
 
-    # add_index(:refresh_tokens, [:device, :user_id, :created_at], order: { created_at: :desc })
+    # add_index(:refresh_tokens, [:user_id, :created_at], order: { created_at: :desc })
   end
 
   def down

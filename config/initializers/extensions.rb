@@ -6,4 +6,5 @@
 # If you need this library to always be loaded for your rails app,
 # you require it in an initializer.
 #
-require_relative '../../lib/application_service/application_service'
+require_relative '../../lib/application_service/lib'
+require_relative '../../lib/auth_credentials/lib'

@@ -31,7 +31,7 @@ class CreateRefreshTokensTableRangePartitionProc < ActiveRecord::Migration[7.1]
             -- maximum name length is 63 characters
             -- To create an index without locking out writes to the table
             -- CREATE INDEX CONCURRENTLY cannot be executed from a function
-            EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %I USING BTREE (device, user_id, created_at DESC)',
+            EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %I USING BTREE (user_id, created_at DESC)',
                             index_name,
                             table_range_partition_name);
           END LOOP;

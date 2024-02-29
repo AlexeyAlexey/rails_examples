@@ -1,0 +1,20 @@
+production:
+  algorithm: <%= ENV['ACCESS_TOKEN_ALG'] %>
+  private_key: '<%= ENV['ACCESS_TOKEN_PRIVATE_KEY'] %>'
+  private_key_password: '<%= ENV['ACCESS_TOKEN_PRIVATE_KEY_PASSWORD'] %>'
+  public_key: '<%= ENV['ACCESS_TOKEN_PUBLIC_KEY'] %>'
+  lifetime: <%= ENV['ACCESS_TOKEN_LIFETIME'] %>
+
+development:
+  algorithm: <%= ENV['ACCESS_TOKEN_ALG'] %>
+  private_key: '<%= ENV['ACCESS_TOKEN_PRIVATE_KEY'] %>'
+  private_key_password: '<%= ENV['ACCESS_TOKEN_PRIVATE_KEY_PASSWORD'] %>'
+  public_key: '<%= ENV['ACCESS_TOKEN_PUBLIC_KEY'] %>'
+  lifetime: <%= ENV['ACCESS_TOKEN_LIFETIME'] %>
+
+test:
+  algorithm: <%= ENV['ACCESS_TOKEN_ALG'] %>
+  private_key: '<%= ENV['ACCESS_TOKEN_PRIVATE_KEY'] %>'
+  private_key_password: '<%= ENV['ACCESS_TOKEN_PRIVATE_KEY_PASSWORD'] %>'
+  public_key: '<%= ENV['ACCESS_TOKEN_PUBLIC_KEY'] %>'
+  lifetime: <%= ENV['ACCESS_TOKEN_LIFETIME'] %>

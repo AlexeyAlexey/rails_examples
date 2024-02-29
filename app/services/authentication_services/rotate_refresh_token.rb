@@ -10,7 +10,7 @@ module AuthenticationServices
     def call
       user_readable_errors.add(:authentication, 'invalid credentials') if refresh_token.blank?
 
-      user_refresh_token = FindUserByRefreshToken.call(refresh_token:)
+      user_refresh_token = ::AuthenticationServices::DecodeRefreshToken.call(refresh_token:)
 
       if user_refresh_token.failure?
         user_readable_errors.add(:authentication, 'invalid credentials')
@@ -20,8 +20,9 @@ module AuthenticationServices
 
       device = user_refresh_token.result.device
       user_id = user_refresh_token.result.user_id
+      token = user_refresh_token.result.token
 
-      res = CheckUserRefreshToken.call(device:, user_id:, refresh_token:, lifetime:)
+      res = CheckUserRefreshToken.call(device:, user_id:, refresh_token: token, lifetime:)
 
       if res.failure?
         exceptions.add_multiple_errors res.exceptions if res.exceptions.present?
@@ -60,7 +61,7 @@ module AuthenticationServices
 
       # detect a race condition ToReactIfRaceCondition.call(device:, user_id:,)
 
-      res.result
+      res.result.user_token
     end
 
     private

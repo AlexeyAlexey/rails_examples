@@ -57,4 +57,36 @@ RSpec.describe ::PartitionServices::CreateRefreshToken do
       expect { described_class.call(from:, to:, interval:) }.to change { partitions.call.sort }.from([]).to(res.sort)
     end
   end
+
+  describe 'indexes' do
+    after do
+      DBTest::DropTablePartitions.drop('refresh_tokens')
+    end
+
+    let(:sql_select_partitions_indexes) do
+      <<~SQL
+        SELECT tablename, indexname, indexdef
+        FROM pg_indexes
+        WHERE tablename = 'refresh_tokens_p20240223_090000';
+      SQL
+    end
+
+    it 'creates user_id, created_at DESC index' do
+      interval = '1 HOUR'
+      from = '2024-02-23 09:01:00 UTC'.to_datetime
+      to = '2024-02-23 10:15:00 UTC'.to_datetime
+
+      indexname = 'inx_refresh_tokens_on_dev_usr_id_created_at_p20240223_090000'
+      tablename = 'refresh_tokens_p20240223_090000'
+
+      indexdef = "CREATE INDEX #{indexname} ON public.#{tablename} USING btree (user_id, created_at DESC)"
+
+      described_class.call(from:, to:, interval:)
+
+      res = ActiveRecord::Base.connection.execute(sql_select_partitions_indexes).to_a.first
+
+      expect(res['indexname']).to eq(indexname)
+      expect(res['indexdef']).to eq(indexdef)
+    end
+  end
 end
