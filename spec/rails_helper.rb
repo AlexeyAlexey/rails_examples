@@ -10,6 +10,9 @@ require 'rspec/rails'
 # https://rspec.info/features/3-12/rspec-core/helper-methods/modules/
 require_relative 'support/factory_bot'
 require_relative 'support/db_test/drop_table_partitions'
+
+Dir[Rails.root.join('spec/support/models/**/*.rb')].sort.each { |f| require f }
+# require_relative 'support/models/concerns/one_time_password_example'
 # Requires supporting ruby files with custom matchers and macros, etc, in
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
 # run as spec files by default. This means that files in spec/support that end

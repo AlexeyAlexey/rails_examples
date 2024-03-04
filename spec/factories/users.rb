@@ -1,7 +1,8 @@
 FactoryBot.define do
   factory :user do
     first_name { 'First name' }
-    password { "MyString" }
-    password_digest { "MyString" }
+    password { 'password' }
+    password_digest { 'password' }
+    password_confirmation { 'password' }
   end
 end

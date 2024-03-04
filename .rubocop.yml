@@ -60,3 +60,15 @@ Style/NumericLiterals:
 
 RSpec/MultipleMemoizedHelpers:
   Enabled: false
+
+RSpec/MessageSpies:
+  Enabled: false
+
+Style/RedundantSelf:
+  Enabled: false
+
+Lint/ConstantDefinitionInBlock:
+  Enabled: false
+
+Rails/HttpStatus:
+  Enabled: false

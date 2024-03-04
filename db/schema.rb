@@ -10,8 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2024_02_23_160241) do
+ActiveRecord::Schema[7.1].define(version: 2024_03_01_183409) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "citext"
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
 
@@ -23,6 +24,18 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_23_160241) do
     t.text "reason"
     t.datetime "expire_at", precision: nil
     t.datetime "created_at", precision: nil
+  end
+
+  create_table "user_emails", force: :cascade do |t|
+    t.uuid "user_id"
+    t.citext "email", null: false
+    t.boolean "validated_otp", default: false
+    t.string "otp_tail", default: "", null: false
+    t.string "otp_secret_key", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_user_emails_on_email", unique: true
+    t.index ["user_id"], name: "index_user_emails_on_user_id"
   end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -39,4 +52,5 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_23_160241) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "user_emails", "users"
 end
