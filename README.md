@@ -405,14 +405,13 @@ We need to choose, if we want to have an hourly or a daily partition.
 
 We do it not only because of the table size.
 
-When the index size is grow, insert query performance degradates
+When the index size grows, insert query performance degrads
 
 
 
 
 There is a [pg_partman](https://github.com/pgpartman/pg_partman) PostgreSQL extension.
-pg_partman is an extension to create and manage both time-based and number-based table partition sets
-
+pg_partman is an extension for creating and managing both time-based and number-based table partition sets.
 
 
 
@@ -421,12 +420,13 @@ We can develop our own PostgreSQL functions to do it.
 
 1. We need to change refresh_tokens migration
 
-  - To speed up insertion, I deleted restriction on DB level. It is not so critical here, you can leave restriction on DB level
+  - To speed up insertion querys, I deleted restriction on the DB level. It is not so critical here, you can leave them
 
   - Do not use the default partition, since it causes additional locking
 
 
   To see information about a table I use the following SQL command
+
   ```# \d+ refresh_tokens```
 
 
@@ -451,19 +451,19 @@ Let's develop SQL functions/procedures and services to create partitions
 
 ```/app/services/partition_services/drop_refresh_token.rb```
 
-You can create a procedure as was done to create partitions
+You can encapsulate it in a db procedure/function instead of doing it on an application level.
 
 ```ruby
 ::PartitionServices::DropRefreshToken.call(from:, to:, interval:)
 ```
 
 
-4. Indexes
+4. Indices
 
 All partitions must have the same columns as their partitioned parent, **partitions may have their own indexes, constraints and default values**, distinct from those of other partitions. [DOC](https://www.postgresql.org/docs/15/ddl-partitioning.html)
 
 
-It is more flexible to create/change indexes on a partition level especially when you need to change indexes for big amount of partitions. It is also valid for constraints.
+It is more flexible to create/change indices on a partition level especially when you need to change indices for a big number of partitions. It is also valid for constraints.
 
 ```/db/migrate/20240223160241_create_refresh_tokens_table_range_partition_proc.rb```
 
@@ -483,7 +483,7 @@ Pre-creating partitions
 We need to take into account that we use partitions when we develop queries to the table
 
 
-The following query is used to select last two refresh token events
+The following query is used to select the last two refresh token events
 
 ```ruby
 refresh_tokens = RefreshToken.where(device:, user_id:).order(created_at: :desc).limit(2)
@@ -533,7 +533,7 @@ Partitions: refresh_tokens_p20240201_120000 FOR VALUES FROM ('2024-02-01 12:00:0
 
 ```
 
-Let's consider a case when a current time is 14:25:00 (between '2024-02-01 13:00:00' and '2024-02-01 14:00:00'). The following partitions are pre-defined
+Let's consider a case when the current time is 14:25:00 (between '2024-02-01 13:00:00' and '2024-02-01 14:00:00'). The following partitions are pre-defined
 
 ```SQL
 refresh_tokens_p20240201_150000 FOR VALUES FROM ('2024-02-01 15:00:00') TO ('2024-02-01 16:00:00'),
@@ -564,9 +564,9 @@ LIMIT 2;
 (12 rows)
 ```
 
-You can see that we scan every partitions even that we do not need.
+You can see that we scan every partition even the once we do not need.
 
-Partition key should be used in a query to fix it.
+A partition key should be used in a query to fix it.
 
 ```SQL
 EXPLAIN SELECT * FROM refresh_tokens
@@ -588,9 +588,9 @@ LIMIT 2;
 (8 rows)
 ```
 
-The last two partitions are not scanned
+The last two partitions are not scanned.
 
-What if the only last two hours required
+What if the only last two hours are required.
 
 ```SQL
 EXPLAIN SELECT * FROM refresh_tokens
@@ -620,7 +620,7 @@ inx_refresh_tokens_on_dev_usr_id_created_at_p20240201_130000
 ```
 
 
-The following qeary is required to be changed
+The following query is required to be changed.
 
 ```ruby
 refresh_tokens = RefreshToken.where(device:, user_id:).order(created_at: :desc).limit(2)
@@ -638,7 +638,7 @@ refresh_tokens = RefreshToken
 ```
 
 
-```drift_seconds``` this parameter can be used if user's refresh token should be invalidate manually (or out of the RotateRefreshToken service context). A new invalidate event is created to a couple seconds ahead to be sure that all valide refresh tokens are invalidated.
+```drift_seconds``` this parameter can be used if user's refresh token should be invalidated manually (or out of the RotateRefreshToken service context). A new invalidate event is created a couple of seconds ahead to be sure that all valid refresh tokens are invalidated.
 
 ```ruby
 AuthenticationServices::InvalidateRefreshTokens
@@ -649,14 +649,14 @@ AuthenticationServices::InvalidateRefreshTokens
 
 **In progress**
 
-If the same refresh token is processed at the same time by two different requests - how to detect this?
+If the same refresh token is processed at the same time by two different requests - how can this be detected?
 
-1. We can calculate difference betwean a created_at value of a new refresh token event and a created_at value the previouse refresh token event. If the difference less then 10 seconds, all refresh token for this user's device must be invalidated (revoked)
+1. We can calculate the difference betwean a created_at value of a new refresh token event and a created_at value of the previouse refresh token event. If the difference is less than 10 seconds, all refresh tokens for this user's device must be invalidated (revoked)
 
 
 If the same refresh token is processed at the same time by two different requests and it is detected, InvalidateRefreshTokens is called.
 
-2. You can say that this case will be resolved automatically on the next refresh token rotation. One of them will be asked to sing in and a new refresh token will be generated.
+2. This case will be resolved automatically on the next refresh token rotation. One of them will be asked to sing in and a new refresh token will be generated.
 
 
 
@@ -664,17 +664,17 @@ If the same refresh token is processed at the same time by two different request
 
 Let's consider the following case
 
-1. Issued a refresh token (sing_in). refresh token lifetime is 1 hour. access token lifetime 5 minutes
+1. A refresh token was issued (sing_in). refresh token lifetime is 1 hour. access token lifetime is 5 minutes
 
-2. refresh token was stolen (at the beginning)
+2. The refresh token was stolen (at the beginning)
 
-3. the stolen refresh token is used to issue a new refresh token (after a 5 minutes)
+3. The stolen refresh token is used to issue a new refresh token (after 5 minutes)
 
-4. the stolen refresh token is used to issue a new refresh token (after a 10 minutes)
+4. The stolen refresh token is used to issue a new refresh token (after 10 minutes)
 
-5. The refresh token that was issued in 1 step is used to rotate a refresh token by agenuine user (after 30 minutes). It is failed. It cannot be detected as "Reuse Detection" because we consider only two last events now. (**Should be fixed** - DONE)
+5. The refresh token that was issued in step 1 is used to rotate a refresh token by a genuine user (after 30 minutes). It failed. It cannot be detected as "Reuse Detection" because we are considering only two last events now. (**Should be fixed** - DONE)
 
-6. The user will be asked to sign in. A new refresh token is generated.
+6. The user is asked to sign in. A new refresh token is generated.
 
 
 
