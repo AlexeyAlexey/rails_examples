@@ -39,6 +39,8 @@ module RailsExamples
     # https://github.com/sidekiq/sidekiq/wiki/Active-Job#performance
     # config.active_job.queue_adapter = :sidekiq
 
+    config.active_record.schema_format = :sql
+
     config.generators.after_generate do |files|
       parsable_files = files.filter { |file| file.end_with?('.rb') }
       unless parsable_files.empty?

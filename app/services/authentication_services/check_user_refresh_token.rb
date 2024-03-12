@@ -10,6 +10,8 @@ module AuthenticationServices
     end
 
     def call
+      # If you allow to use a couple of devices at the same time
+      # you should take into account a device value in a db query ...
       if refresh_token.blank?
         exceptions.add :invalid_parameters, 'refresh_token is blank?'
         return nil
@@ -23,7 +25,6 @@ module AuthenticationServices
         return nil
       end
 
-      # device is not used in the query because a device value is a part of a token
       refresh_tokens = RefreshToken.where('user_id = ? AND created_at >= ? AND created_at <= ?',
                                           user_id,
                                           DateTime.now.utc - lifetime.seconds,

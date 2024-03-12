@@ -29,7 +29,7 @@ module AuthenticationServices
 
         if res.exceptions[:detected]&.include?('Reuse detection')
           res = InvalidateRefreshTokens.call(user_id:,
-                                             refresh_token:,
+                                             refresh_token: token,
                                              device:,
                                              drift_seconds: 2,
                                              reason: 'reuse detection')

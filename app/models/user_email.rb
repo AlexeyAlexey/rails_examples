@@ -6,6 +6,6 @@ class UserEmail < ApplicationRecord
   validates :email, presence: true, uniqueness: { case_sensitive: false }
 
   def validated?
-    self.validated_otp
+    self.validated
   end
 end

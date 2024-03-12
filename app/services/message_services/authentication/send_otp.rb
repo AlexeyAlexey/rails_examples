@@ -3,26 +3,25 @@ module MessageServices
     class SendOtp
       prepend ::ApplicationService
 
-      def initialize(code:, to:, type:)
+      def initialize(code:, objct_id:, type:)
         @code = code
-        @to = to
+        @objct_id = objct_id
         @type = type
       end
 
       def call
         case type.to_sym
         when :email
+          ::Jobs::Mailers::Authentication::SendOtp.perform_async(code, objct_id)
 
         when :sms
-
-        when :push_notification
-        else
+          ::Jobs::Mailers::Authentication::Twilio.perform_async(code, objct_id)
         end
       end
 
       private
 
-      attr_reader :code, :to, :type
+      attr_reader :code, :objct_id, :type
     end
   end
 end

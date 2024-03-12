@@ -2,7 +2,7 @@ module AuthenticationServices
   class IssueRefreshToken
     prepend ::ApplicationService
 
-    def initialize(user_id:, device:, expire_at:, action: 'issued')
+    def initialize(user_id:, device:, expire_at:, action: RefreshToken::ACTIONS['issued'])
       @user_id = user_id
       @device = device
       @action = action

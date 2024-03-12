@@ -3,6 +3,7 @@ module V1
     class EmailsController < ApplicationController
       rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
 
+      skip_before_action :authorize_request
       before_action :find_user_email, only: [:validate]
 
       def create
@@ -11,7 +12,7 @@ module V1
         if user.errors.blank?
           user_email = user.user_emails.first
           ::MessageServices::Authentication::SendOtp.call(code: user_email.generate_one_time_password,
-                                                          to: user_email.email,
+                                                          objct_id: user_email.id,
                                                           type: :email)
 
           render json: { success: 'Verification code was sent to your email' }
@@ -21,15 +22,14 @@ module V1
       end
 
       def validate
-        if @user_email.authenticate_otp(validate_params[:code])
+        if @user_email.authenticate_otp(validate_params[:code]).validated_otp?
+          @user_email.update(validated: true)
+
           render json: { success: 'The email was validated' }, status: 200
         else
-          render status: :unauthorized
+          render json: {}, status: :unauthorized
         end
       end
-
-      # def sign_in
-      # end
 
       private
 

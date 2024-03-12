@@ -72,3 +72,6 @@ Lint/ConstantDefinitionInBlock:
 
 Rails/HttpStatus:
   Enabled: false
+
+Metrics/ParameterLists:
+  Enabled: false

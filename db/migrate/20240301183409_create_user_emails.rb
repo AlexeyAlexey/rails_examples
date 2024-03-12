@@ -5,6 +5,8 @@ class CreateUserEmails < ActiveRecord::Migration[7.1]
 
       t.citext :email, null: false
 
+      t.boolean  :validated, default: false
+
       # OTP
       t.boolean  :validated_otp, default: false
       t.string   :otp_tail,       null: false, default: ''

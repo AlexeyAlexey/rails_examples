@@ -10,6 +10,8 @@ Rails.application.routes.draw do
 
   namespace :v1 do
     namespace :authentication do
+      resource :email_sessions, only: [:create, :destroy]
+
       resource :emails, only: [:create] do
         post 'validate', on: :collection
       end

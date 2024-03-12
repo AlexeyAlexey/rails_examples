@@ -25,8 +25,8 @@ module AuthenticationServices
         exceptions.add :jwt, 'Invalid sub'
       rescue JWT::InvalidAudError
         exceptions.add :jwt, 'Invalid aud'
-      rescue JWT::DecodeError
-        exceptions.add :jwt, 'Decode Error'
+      rescue JWT::DecodeError => e
+        exceptions.add :jwt, "Decode Error #{e.message}"
       rescue JWT::VerificationError
         exceptions.add :jwt, 'Verification Error'
       rescue JWT::ExpiredSignature
