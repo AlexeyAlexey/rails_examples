@@ -31,6 +31,11 @@ module RailsExamples
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    # As long as Active Job is setup to use Sidekiq we can use #deliver_later.
+    # https://github.com/sidekiq/sidekiq/wiki/Active-Job#action-mailer
+    # https://github.com/sidekiq/sidekiq/wiki/Active-Job#performance
+    # config.active_job.queue_adapter = :sidekiq
+
     config.generators.after_generate do |files|
       parsable_files = files.filter { |file| file.end_with?('.rb') }
       unless parsable_files.empty?
